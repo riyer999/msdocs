@@ -1,32 +1,39 @@
 import os
+from dash import Dash, html, dcc, Input, Output, State
+from flask import send_from_directory
 
-from flask import (Flask, redirect, render_template, request,
-                   send_from_directory, url_for)
+app = Dash(__name__)
+server = app.server  # Expose the Flask server for deployment
 
-app = Flask(__name__)
-
-
-@app.route('/')
-def index():
-   print('Request for index page received')
-   return render_template('index.html')
-
-@app.route('/favicon.ico')
+# Favicon route
+@server.route('/favicon.ico')
 def favicon():
-    return send_from_directory(os.path.join(app.root_path, 'static'),
-                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
+    return send_from_directory(
+        os.path.join(server.root_path, 'static'),
+        'favicon.ico', mimetype='image/vnd.microsoft.icon'
+    )
 
-@app.route('/hello', methods=['POST'])
-def hello():
-   name = request.form.get('name')
+# Dash Layout
+app.layout = html.Div([
+    html.H1("Welcome to the Index Page"),
+    html.Div(id='output-message'),
+    dcc.Input(id='name-input', type='text', placeholder='Enter your name'),
+    html.Button('Submit', id='submit-button', n_clicks=0),
+])
 
-   if name:
-       print('Request for hello page received with name=%s' % name)
-       return render_template('hello.html', name = name)
-   else:
-       print('Request for hello page received with no name or blank name -- redirecting')
-       return redirect(url_for('index'))
-
+# Callback for greeting message
+@app.callback(
+    Output('output-message', 'children'),
+    [Input('submit-button', 'n_clicks')],
+    [State('name-input', 'value')]
+)
+def greet_user(n_clicks, name):
+    if n_clicks > 0:
+        if name:
+            return f"Hello, {name}!"
+        else:
+            return "No name entered; please enter a name."
+    return ""
 
 if __name__ == '__main__':
-   app.run()
+    app.run_server(debug=True)
